@@ -109,6 +109,7 @@ void setup() {
     // 010: AVG, 2h = 16 times
     //INA238_write(INA238_ADC_CONFIG, 0xBB6A);
     INA238_write(INA238_ADC_CONFIG, 0xFB6A);
+    //INA238_write(INA238_ADC_CONFIG, 0xDB6A);
     // INA238, SHUNT_CAL 02h, 0x1000
     // 0001 0000 0000 0000
     // 0: RESERVED
@@ -117,18 +118,24 @@ void setup() {
 }
  
 void loop() {
-    int vs, vb, c;
-    int t;
+    int vs;     // Shunt Voltage, 5 uV/LSB when ADCRANGE = 0, +-164.84 mV
+    int vb;     // Bus Voltage, 3.125 mV/LSB, 0~85V
+    int dt;     // Temperature, 125 m Celcius Degree/LSB, -40~125 Celsius Degree
+    int cs;     // Shunt Current, 2.5 mA/LSB = 163.84 mV / 2^15 / 0.002 Ohm when R_shunt = 2 mOhm
+    float vs_;
     float vb_;
     float dt_;
+    float cs_;
 
+    vs_ = vs = INA238_read(INA238_VSHUNT);
     vb_ = vb = INA238_read(INA238_VBUS);
-    vs = INA238_read(INA238_VSHUNT);
-    c = INA238_read(INA238_CURRENT);
-    dt_ = t = (INA238_read(INA238_DIETEMP)) >> 4;
+    dt_ = dt = (INA238_read(INA238_DIETEMP)) >> 4;
+    cs_ = cs = INA238_read(INA238_CURRENT);
 
+    vs_ *= 0.005;
     vb_ *= 3.125;
     dt_ *= 0.125;
+    cs_ *= 2.5;
 
     Serial.print(vb); // bus voltage (reading)
     Serial.print(" ");
