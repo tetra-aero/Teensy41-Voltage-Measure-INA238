@@ -11,45 +11,53 @@ LEDblink led_test;
 #include <Wire.h>
 
 // Arduino UNO
-// Connect INA226 with SCL (A5), SDA (A4)
+// Connect INA238 with SCL (A5), SDA (A4)
 // Teensy 4.1
-// Connect INA226 with SCL0(19), SDA0(18) : Wire
-// Connect INA226 with SCL1(16), SDA1(17) : Wire1
-// Connect INA226 with SCL2(24), SDA2(15) : Wire2
+// Connect INA238 with SCL0(19), SDA0(18) : Wire
+// Connect INA238 with SCL1(16), SDA1(17) : Wire1
+// Connect INA238 with SCL2(24), SDA2(15) : Wire2
 // https://github.com/Richard-Gemmell/teensy4_i2c
 
-// const byte INA226_ADDR = B1000000;
-const byte INA226_ADDR = B1000101;
+const byte INA238_ADDR = B1000000;
+// const byte INA238_ADDR = B1000101;
 
-const byte INA226_CONFIG    = 0x00;
-const byte INA226_SHUNTV    = 0x01;
-const byte INA226_BUSV      = 0x02;
-const byte INA226_POWER     = 0x03;
-const byte INA226_CURRENT   = 0x04;
-const byte INA226_CALIB     = 0x05;
-const byte INA226_MASK      = 0x06;
-const byte INA226_ALERTL    = 0x07;
-const byte INA226_DIE_ID    = 0xff;
+const byte INA238_CONFIG          = 0x00;
+const byte INA238_ADC_CONFIG      = 0x01;
+const byte INA238_SHUNT_CAL       = 0x02;
+const byte INA238_VSHUNT          = 0x04;
+const byte INA238_VBUS            = 0x05;
+const byte INA238_DIETEMP         = 0x06;
+const byte INA238_CURRENT         = 0x07;
+const byte INA238_POWER           = 0x08;
+const byte INA238_DIAG_ALRT       = 0x0B;
+const byte INA238_SOVL            = 0x0C;
+const byte INA238_SUVL            = 0x0D;
+const byte INA238_BOVL            = 0x0E;
+const byte INA238_BUVL            = 0x0F;
+const byte INA238_TEMP_LIMIT      = 0x10;
+const byte INA238_PWR_LIMIT       = 0x11;
+const byte INA238_MANUFACTURER_ID = 0x3E;
+const byte INA238_DEVICE_ID       = 0x3F;
 
-void INA226_write(byte reg, unsigned short val)
+void INA238_write(byte reg, unsigned short val)
 {
-Wire.beginTransmission(INA226_ADDR);
+Wire.beginTransmission(INA238_ADDR);
 Wire.write(reg);
 Wire.write(val >> 8);
 Wire.write(val & 0xff);
 Wire.endTransmission();
 }
 
-short INA226_read(byte reg)
+short INA238_read(byte reg)
 {
 short ret = 0;
 // request the registor
-Wire.beginTransmission(INA226_ADDR);
+Wire.beginTransmission(INA238_ADDR);
 Wire.write(reg);
 Wire.endTransmission();
 
 // read
-Wire.requestFrom((int)INA226_ADDR, 2);
+Wire.requestFrom((int)INA238_ADDR, 2);
 
 while(Wire.available()) {
 ret = (ret << 8) | Wire.read();
@@ -64,28 +72,42 @@ void setup() {
     while (!Serial) {}
 
     Wire.begin();
-    // average: 16 times, conversion time: 8.244ms/8.244ms
-    INA226_write(INA226_CONFIG, 0x45ff);
-    // current conversion
-    INA226_write(INA226_CALIB, 2560);
+    // INA226, Configuration 00h, 0x45ff
+    // 0100 0101 1111 1111
+    // 0: RST
+    // 100: None
+    // 010: AVG, AVeraGe, 16 times
+    // 111: VBusCT, 8.244 ms
+    // 111: VShCT, 8.244 ms
+    // 111: MODE, Shunt and Bus, Continuous
+    INA238_write(INA238_CONFIG, 0x45ff);
+    // INA226, Calibration 05h, 2560, 0A00h, current conversion
+    // 0000 0110 0000 0000
+    // (1) CALibration = 0.00512/(Current_LSB*Rshunt)
+    // (2) Current_LSB = Maximum Expected Current/2^15
+    // Example1, Rshunt = 2 mOhm, Current_LSB = 1 mA/bit
+    // CALibration = 0.00512/1 mA/bit * 2 mOhm = 2560
+    // Example2, Maximum Expected Current = 15 A
+    // Current_LSB = 15 A/ 2^15 = 457.7 uA/bit
+    INA238_write(INA238_CALIB, 2560);
 }
  
 void loop() {
-    int sv, bv, c;
-    float bv_;
+    int vs, vb, c;
+    float vb_;
 
-    bv_ = bv = INA226_read(INA226_BUSV);
-    sv = INA226_read(INA226_SHUNTV);
-    c = INA226_read(INA226_CURRENT);
+    vb_ = vb = INA238_read(INA238_VBUS);
+    vs = INA238_read(INA238_VSHUNT);
+    c = INA238_read(INA238_CURRENT);
 
-    bv_ *= 1.25;
-    //bv_ *= 1.18;
+    vb_ *= 1.25;
+    //vb_ *= 1.18;
 
-    Serial.print(bv); // bus voltage (reading)
+    Serial.print(vb); // bus voltage (reading)
     Serial.print(" ");
-    Serial.print(sv); // shunt voltage (reading)
+    Serial.print(vs); // shunt voltage (reading)
     Serial.print(" ");
-    Serial.print(bv_); // bus voltage in [mV]
+    Serial.print(vb_); // bus voltage in [mV]
     Serial.print(" ");
     Serial.println(c); // current in [mA]
 
