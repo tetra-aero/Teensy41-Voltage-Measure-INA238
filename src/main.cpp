@@ -80,7 +80,15 @@ void setup() {
     // 111: VBusCT, 8.244 ms
     // 111: VShCT, 8.244 ms
     // 111: MODE, Shunt and Bus, Continuous
-    INA238_write(INA238_CONFIG, 0x45ff);
+    // INA238, Configuration 00h, 0x0080
+    // 0000 0000 0100 0000
+    // 0: RST
+    // 0: RESERVED 
+    // 0000 0001: ADC conversion, 0h = 0 s, 1h = 2 ms, FFh = 510 ms
+    // 0: RESERVED
+    // 0: ADCRANGE, Shunt full scale range 0h = +-163.84mV, 1h = +-40.96mV
+    // 0000: RESERVED
+    INA238_write(INA238_CONFIG, 0x0080);
     // INA226, Calibration 05h, 2560, 0A00h, current conversion
     // 0000 0110 0000 0000
     // (1) CALibration = 0.00512/(Current_LSB*Rshunt)
@@ -89,19 +97,38 @@ void setup() {
     // CALibration = 0.00512/1 mA/bit * 2 mOhm = 2560
     // Example2, Maximum Expected Current = 15 A
     // Current_LSB = 15 A/ 2^15 = 457.7 uA/bit
-    INA238_write(INA238_CALIB, 2560);
+    // INA238, ADC_Config 01h, 0xBB6A
+    // 1011 1011 0110 1010
+    // 1011: MODE, Bh = Continuous shunt and bus voltage,
+    //             9h = Continuous bus voltage only, 
+    //             Fh = Continuous bus voltage, shunt voltage and termperature, 
+    //             Dh = Continuous bus voltage and temperature 
+    // 101: VBUSCT, 5h = 1052 us
+    // 101: VSHCT, 5h = 1052 us
+    // 101: VTCT, 5h = 1052 us
+    // 010: AVG, 2h = 16 times
+    //INA238_write(INA238_ADC_CONFIG, 0xBB6A);
+    INA238_write(INA238_ADC_CONFIG, 0xFB6A);
+    // INA238, SHUNT_CAL 02h, 0x1000
+    // 0001 0000 0000 0000
+    // 0: RESERVED
+    // 001 0000 0000 0000: 
+    INA238_write(INA238_SHUNT_CAL, 0x1000);
 }
  
 void loop() {
     int vs, vb, c;
+    int t;
     float vb_;
+    float dt_;
 
     vb_ = vb = INA238_read(INA238_VBUS);
     vs = INA238_read(INA238_VSHUNT);
     c = INA238_read(INA238_CURRENT);
+    dt_ = t = (INA238_read(INA238_DIETEMP)) >> 4;
 
-    vb_ *= 1.25;
-    //vb_ *= 1.18;
+    vb_ *= 3.125;
+    dt_ *= 0.125;
 
     Serial.print(vb); // bus voltage (reading)
     Serial.print(" ");
@@ -109,7 +136,11 @@ void loop() {
     Serial.print(" ");
     Serial.print(vb_); // bus voltage in [mV]
     Serial.print(" ");
-    Serial.println(c); // current in [mA]
+    Serial.print(c); // current in [mA]
+    Serial.print(" ");
+    Serial.print(t); // dietemperature [125mdegree/LSB]
+    Serial.print(" ");
+    Serial.println(dt_); // temperature [Degree]
 
     led_test.led_on();
     Serial.println("LED On!!"); 
