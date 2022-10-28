@@ -143,9 +143,9 @@ void loop() {
     Serial.print(" ");
     Serial.print(vb_); // bus voltage in [mV]
     Serial.print(" ");
-    Serial.print(c); // current in [mA]
+    Serial.print(cs); // current in [mA]
     Serial.print(" ");
-    Serial.print(t); // dietemperature [125mdegree/LSB]
+    Serial.print(dt); // dietemperature [125mdegree/LSB]
     Serial.print(" ");
     Serial.println(dt_); // temperature [Degree]
 
