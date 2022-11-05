@@ -41,26 +41,26 @@ const byte INA238_DEVICE_ID       = 0x3F;
 
 void INA238_write(byte reg, unsigned short val)
 {
-Wire.beginTransmission(INA238_ADDR);
-Wire.write(reg);
-Wire.write(val >> 8);
-Wire.write(val & 0xff);
-Wire.endTransmission();
+Wire1.beginTransmission(INA238_ADDR);
+Wire1.write(reg);
+Wire1.write(val >> 8);
+Wire1.write(val & 0xff);
+Wire1.endTransmission();
 }
 
 short INA238_read(byte reg)
 {
 short ret = 0;
 // request the registor
-Wire.beginTransmission(INA238_ADDR);
-Wire.write(reg);
-Wire.endTransmission();
+Wire1.beginTransmission(INA238_ADDR);
+Wire1.write(reg);
+Wire1.endTransmission();
 
 // read
-Wire.requestFrom((int)INA238_ADDR, 2);
+Wire1.requestFrom((int)INA238_ADDR, 2);
 
-while(Wire.available()) {
-ret = (ret << 8) | Wire.read();
+while(Wire1.available()) {
+ret = (ret << 8) | Wire1.read();
 }
 
 return ret;
@@ -71,7 +71,12 @@ void setup() {
     Serial.begin(115200);
     while (!Serial) {}
 
-    Wire.begin();
+    //Wire.begin();
+    //Wire.setClock(100000); // fSCL = 100kHz
+    Wire1.begin();
+    Wire1.setClock(100000); // fSCL = 100kHz
+    //Wire.setClock(20000); // fSCL = 20kHz
+    //Wire.setClock(400000); // fSCL = 400kHz
     // INA226, Configuration 00h, 0x45ff
     // 0100 0101 1111 1111
     // 0: RST
@@ -151,8 +156,8 @@ void loop() {
 
     led_test.led_on();
     Serial.println("LED On!!"); 
-    delay(500); 
+    delay(1000); 
     led_test.led_off();
     Serial.println("LED Off!!");
-    delay(500); 
+    delay(1000); 
 }
